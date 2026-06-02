@@ -22,7 +22,7 @@ import (
 //go:embed migrations
 var migrations embed.FS
 
-const migrationsCurrentVersion = 1
+const migrationsCurrentVersion = 2
 
 func migrateWithFS(db *sql.DB, fileSystem fs.FS) error {
 	sourceInstance, err := iofs.New(fileSystem, "migrations")
