@@ -94,12 +94,13 @@ func UsersAll(db storage.Users, adapter storage.UserAdapter) horror.HandlerFunc 
 		}
 
 		filters := users.DefaultFilters()
+		filters = append(filters, users.Online)
 
-		switch r.URL.Query().Get("online") {
-		case "true":
-			filters = append(filters, users.Online)
-		case "false":
-			filters = append(filters, users.Not(users.Online))
+		if r.URL.Query().Get("online") == "false" {
+			return happier.FromRequest(r).Unauthorized(
+				fmt.Errorf("users.DefaultFilters: offline users requested"),
+				"You don't have access to given resources.",
+			)
 		}
 
 		filtered := users.Filter(adaptedData, filters...)
