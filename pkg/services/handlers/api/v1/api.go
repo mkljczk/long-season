@@ -383,17 +383,19 @@ func UpdateStatus(ch chan<- []net.HardwareAddr) horror.HandlerFunc {
 	}
 }
 
-func Status(counters storage.StatusTx) horror.HandlerFunc {
-	var response struct {
-		Online  int `json:"online"`
-		Unknown int `json:"unknown"`
-	}
-
+func Status(counters storage.StatusTx, db storage.Users, adapter storage.UserAdapter) horror.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx := r.Context()
 		errFactory := happier.FromRequest(r)
 
+		var response struct {
+			Online   int  `json:"online"`
+			Unknown  int  `json:"unknown"`
+			Announce bool `json:"announce"`
+		}
+
 		err := counters.DevicesStatus(
-			r.Context(),
+			ctx,
 			func(ctx context.Context, s storage.Status) error {
 				online, err := s.OnlineUsers(ctx)
 				if err != nil {
@@ -415,6 +417,29 @@ func Status(counters storage.StatusTx) horror.HandlerFunc {
 				fmt.Errorf("counters.DevicesStatus: %w", err),
 				internalServerErrorResponse,
 			)
+		}
+
+		data, err := db.All(ctx)
+		if err != nil {
+			return errFactory.InternalServerError(
+				fmt.Errorf("db.All: %w", err),
+				internalServerErrorResponse,
+			)
+		}
+
+		adaptedData, err := adapter.Users(ctx, data)
+		if err != nil {
+			return errFactory.InternalServerError(
+				fmt.Errorf("adapter.Users: %w", err),
+				internalServerErrorResponse,
+			)
+		}
+
+		for _, user := range adaptedData {
+			if user.Online && user.Announce {
+				response.Announce = true
+				break
+			}
 		}
 
 		return happier.OK(w, r, response)
