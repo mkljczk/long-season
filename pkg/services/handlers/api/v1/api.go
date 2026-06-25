@@ -111,7 +111,8 @@ func UsersAll(db storage.Users, adapter storage.UserAdapter) horror.HandlerFunc 
 func UserRead(renewer session.Renewer, db storage.Users, adapter storage.UserAdapter) horror.HandlerFunc {
 	type response struct {
 		models.UserPublicData
-		Private *bool `json:"priv,omitempty"`
+		Private  *bool `json:"priv,omitempty"`
+		Announce *bool `json:"announce,omitempty"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx := r.Context()
@@ -140,9 +141,11 @@ func UserRead(renewer session.Renewer, db storage.Users, adapter storage.UserAda
 		}
 
 		var privateMode *bool = nil
+		var announceMode *bool = nil
 		state, err := renewer.Renew(r)
 		if err == nil && (state.UserID == user.ID) {
 			privateMode = &user.Private
+			announceMode = &user.Announce
 		}
 
 		adapted, err := adapter.User(ctx, *user)
@@ -156,6 +159,7 @@ func UserRead(renewer session.Renewer, db storage.Users, adapter storage.UserAda
 		return happier.OK(w, r, &response{
 			UserPublicData: adapted.UserPublicData,
 			Private:        privateMode,
+			Announce:       announceMode,
 		})
 	}
 }
@@ -193,7 +197,8 @@ func UserRemove(db storage.Users) horror.HandlerFunc {
 
 func UserUpdate(db storage.Users, onlineUsers storage.OnlineUsers) horror.HandlerFunc {
 	type payload struct {
-		Private *bool `json:"priv,omitempty"`
+		Private  *bool `json:"priv,omitempty"`
+		Announce *bool `json:"announce,omitempty"`
 	}
 
 	type response struct {
@@ -220,7 +225,7 @@ func UserUpdate(db storage.Users, onlineUsers storage.OnlineUsers) horror.Handle
 			)
 		}
 
-		if p.Private == nil {
+		if p.Private == nil && p.Announce == nil {
 			return happier.Created(w, r, struct{}{})
 		}
 
@@ -228,7 +233,12 @@ func UserUpdate(db storage.Users, onlineUsers storage.OnlineUsers) horror.Handle
 		res.payload = *p
 
 		err = db.Update(ctx, userID, func(u *storage.UserEntry) error {
-			u.Private = *p.Private
+			if p.Private != nil {
+				u.Private = *p.Private
+			}
+			if p.Announce != nil {
+				u.Announce = *p.Announce
+			}
 			res.UserPublicData = models.UserPublicData{
 				ID:       u.ID,
 				Nickname: u.Nickname,
