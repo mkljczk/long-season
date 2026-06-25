@@ -19,7 +19,12 @@ const deviceComp = ({ tag, id }) =>
 const privMode = valoo(false);
 const announceMode = valoo(true);
 
-const checkbox = ({ store, onClick, disabled }, id, checkedText, uncheckedText) => {
+const checkbox = (
+  { store, onClick, disabled },
+  id,
+  checkedText,
+  uncheckedText,
+) => {
   const checkbox = el("input", { "type": "checkbox" });
   const text = el("div", { "id": id + "-text" }, "");
 
@@ -53,16 +58,18 @@ const checkbox = ({ store, onClick, disabled }, id, checkedText, uncheckedText) 
       text,
     ),
   );
-}
+};
 
-const privModeCheckbox = (state) => checkbox(state, "priv-mode", "Enabled", "Disabled");
+const privModeCheckbox = (state) =>
+  checkbox(state, "priv-mode", "Enabled", "Disabled");
 
-const announceModeCheckbox = (state) => checkbox(
-  state,
-  "announce-mode",
-  "Announcing presence changes",
-  "Not announcing presence changes",
-);
+const announceModeCheckbox = (state) =>
+  checkbox(
+    state,
+    "announce-mode",
+    "Announcing presence changes",
+    "Not announcing presence changes",
+  );
 
 // Returns array with devices components constructed from
 // given aray with devices objects.
